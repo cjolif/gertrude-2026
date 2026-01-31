@@ -44,7 +44,7 @@ def _send_ircc_command(command_code: str) -> None:
 
 
 @tool
-def tv_sound(action: str) -> str:
+def control_tv_volume(action: str) -> str:
     """Control the TV sound volume.
 
     Args:
@@ -70,7 +70,7 @@ def tv_sound(action: str) -> str:
         return f"Error connecting to TV: {e}"
 
 
-TOOLS = [get_current_time, tv_sound]
+TOOLS = [get_current_time, control_tv_volume]
 
 
 def create_agent(model: str = "gpt-4o-mini"):
