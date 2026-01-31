@@ -14,9 +14,10 @@ uv sync
 # Run the CLI
 uv run gertrude --help
 
-# Say hello
-uv run gertrude hello
-uv run gertrude hello YourName
+# Start a chat session
+uv run gertrude chat
+uv run gertrude chat "What time is it?"
+uv run gertrude chat --model gpt-4o
 
 # Show version
 uv run gertrude version

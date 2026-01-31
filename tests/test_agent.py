@@ -1,6 +1,6 @@
 """Tests for the agent tools."""
 
-from gertrude.agent import calculate, get_current_time
+from gertrude.agent import get_current_time, tv_sound
 
 
 def test_get_current_time() -> None:
@@ -11,17 +11,7 @@ def test_get_current_time() -> None:
     assert ":" in result
 
 
-def test_calculate_simple() -> None:
-    assert calculate.invoke({"expression": "2 + 2"}) == "4"
-    assert calculate.invoke({"expression": "10 * 5"}) == "50"
-    assert calculate.invoke({"expression": "2 ** 8"}) == "256"
-
-
-def test_calculate_with_functions() -> None:
-    assert calculate.invoke({"expression": "abs(-5)"}) == "5"
-    assert calculate.invoke({"expression": "max(1, 2, 3)"}) == "3"
-
-
-def test_calculate_invalid() -> None:
-    result = calculate.invoke({"expression": "invalid"})
+def test_tv_sound_invalid_action() -> None:
+    result = tv_sound.invoke({"action": "invalid"})
     assert "Error" in result
+    assert "Invalid action" in result

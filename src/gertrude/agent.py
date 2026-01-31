@@ -45,10 +45,10 @@ def _send_ircc_command(command_code: str) -> None:
 
 @tool
 def tv_sound(action: str) -> str:
-    """Increase or decrease the TV sound.
+    """Control the TV sound volume.
 
     Args:
-        action: Either "up" to increase volume or "down" to decrease volume.
+        action: "up" to increase, "down" to decrease, or "stop" to mute.
     """
     action = action.lower().strip()
     match action:
@@ -59,7 +59,7 @@ def tv_sound(action: str) -> str:
         case "stop":
             command_code = IRCC_VOLUME_STOP
         case _:
-            return f"Error: Invalid action '{action}'. Use 'up' or 'down'."
+            return f"Error: Invalid action '{action}'. Use 'up', 'down', or 'stop'."
 
     try:
         _send_ircc_command(command_code)
