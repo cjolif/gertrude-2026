@@ -40,7 +40,17 @@ This is a LangChain-based ReAct agent CLI using Typer.
 - **src/gertrude/cli.py**: Typer CLI with `chat` command that starts the agent
 - **src/gertrude/agent.py**: LangChain ReAct agent setup with tools
   - Uses `langgraph.prebuilt.create_react_agent`
-  - Tools: `get_current_time`, `calculate`
+  - Tools: `get_current_time`, `tv_sound`
 - **tests/**: pytest tests for CLI and agent tools
 
 To add new tools, define them with `@tool` decorator in `agent.py` and add to `TOOLS` list.
+
+## TV Control
+
+The `tv_sound` tool controls a Sony Bravia TV volume via IRCC commands over HTTP.
+
+Configuration in `agent.py`:
+- `TV_IP`: TV's IP address (default: `192.168.1.11`)
+- `TV_PSK`: Pre-shared key for authentication (default: `0000`)
+
+Actions: `up`, `down`, `stop`
