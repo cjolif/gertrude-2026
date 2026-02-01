@@ -54,7 +54,7 @@ This is a LangChain-based ReAct agent CLI using Typer.
 - **src/gertrude/cli.py**: Typer CLI with `chat` command, loads `.env` at startup
 - **src/gertrude/agent.py**: LangChain ReAct agent setup with tools
   - Uses `langgraph.prebuilt.create_react_agent`
-  - Tools: `get_current_time`, `web_search`, `change_tv_volume`, `change_tv_channel`, `get_tv_power_status`, `set_tv_power`
+  - Tools: `get_current_time`, `web_search`, `get_tv_volume`, `change_tv_volume`, `set_tv_mute`, `change_tv_channel`, `get_tv_power_status`, `set_tv_power`
 - **src/gertrude/devices/**: Device control modules
   - **tv.py**: Sony Bravia TV control via IRCC commands
 - **tests/**: pytest tests for CLI and agent tools
@@ -65,7 +65,9 @@ To add new tools, define them with `@tool` decorator in `agent.py` and add to `T
 
 TV tools control a Sony Bravia TV via IRCC commands over HTTP.
 
-- **change_tv_volume**: `up`, `down`, `mute`, `unmute`, or 0-100 (uses REST API)
+- **get_tv_volume**: get current volume level and mute status (uses REST API)
+- **change_tv_volume**: `up`, `down`, or 0-100 (uses REST API)
+- **set_tv_mute**: mute or unmute the TV (uses REST API)
 - **change_tv_channel**: `up`, `down`, or channel number (e.g., `5`, `12`) (uses IRCC)
 - **get_tv_power_status**: returns whether TV is on or off (uses REST API)
 - **set_tv_power**: turns TV on or off directly (uses REST API)

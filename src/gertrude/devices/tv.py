@@ -11,7 +11,6 @@ TV_IP = os.getenv("TV_IP", "192.168.0.2")
 TV_PSK = os.getenv("TV_PSK", "0000")
 
 # Power & Input
-IRCC_POWER = "AAAAAQAAAAEAAAAVAw=="
 IRCC_INPUT = "AAAAAQAAAAEAAAAlAw=="
 IRCC_SYNC_MENU = "AAAAAgAAABoAAABYAw=="
 IRCC_HDMI1 = "AAAAAgAAABoAAABaAw=="
@@ -44,12 +43,6 @@ IRCC_OPTIONS = "AAAAAgAAAJcAAAA2Aw=="
 IRCC_HELP = "AAAAAgAAAMQAAABNAw=="
 IRCC_DISPLAY = "AAAAAQAAAAEAAAA6Aw=="
 
-# Volume & Audio
-IRCC_VOLUME_UP = "AAAAAQAAAAEAAAASAw=="
-IRCC_VOLUME_DOWN = "AAAAAQAAAAEAAAATAw=="
-IRCC_MUTE = "AAAAAQAAAAEAAAAUAw=="
-IRCC_AUDIO = "AAAAAQAAAAEAAAAXAw=="
-
 # Channel
 IRCC_CHANNEL_UP = "AAAAAQAAAAEAAAAQAw=="
 IRCC_CHANNEL_DOWN = "AAAAAQAAAAEAAAARAw=="
@@ -73,7 +66,7 @@ IRCC_BLUE = "AAAAAgAAAJcAAAAkAw=="
 IRCC_CC = "AAAAAgAAAJcAAAAoAw=="
 
 
-def _call_rest_api(service: str, method: str, params: list | None = None) -> dict:
+def call_rest_api(service: str, method: str, params: list | None = None) -> dict:
     """Call the Sony Bravia REST API.
 
     Args:
@@ -101,66 +94,6 @@ def _call_rest_api(service: str, method: str, params: list | None = None) -> dic
     return response.json()
 
 
-def get_power_status() -> bool:
-    """Get the current power status of the Sony Bravia TV.
-
-    Returns:
-        True if the TV is on (active), False if off (standby).
-    """
-    result = _call_rest_api("system", "getPowerStatus")
-    status = result.get("result", [{}])[0].get("status", "")
-    return status == "active"
-
-
-def set_power_status(power_on: bool) -> None:
-    """Set the TV power state.
-
-    Args:
-        power_on: True to turn on, False to turn off (standby).
-    """
-    status = "active" if power_on else "standby"
-    _call_rest_api("system", "setPowerStatus", [{"status": status}])
-
-
-def get_volume_info() -> dict:
-    """Get the current volume information.
-
-    Returns:
-        Dictionary with 'volume' (0-100), 'mute' (bool), and 'target' keys.
-    """
-    result = _call_rest_api("audio", "getVolumeInformation")
-    # Returns list of targets (speaker, headphone), get the first one
-    volumes = result.get("result", [[]])[0]
-    if volumes:
-        return {
-            "volume": volumes[0].get("volume", 0),
-            "mute": volumes[0].get("mute", False),
-            "target": volumes[0].get("target", "speaker"),
-        }
-    return {"volume": 0, "mute": False, "target": "speaker"}
-
-
-def set_volume(volume: int, target: str = "speaker") -> None:
-    """Set the TV volume to a specific level.
-
-    Args:
-        volume: Volume level (0-100).
-        target: Audio target, typically "speaker".
-    """
-    volume = max(0, min(100, volume))
-    _call_rest_api("audio", "setAudioVolume", [{"volume": str(volume), "target": target}])
-
-
-def set_mute(mute: bool, target: str = "speaker") -> None:
-    """Set the TV mute state.
-
-    Args:
-        mute: True to mute, False to unmute.
-        target: Audio target, typically "speaker".
-    """
-    _call_rest_api("audio", "setAudioMute", [{"mute": mute, "target": target}])
-
-
 def send_ircc_command(command_code: str) -> None:
     """Send an IRCC command to the Sony Bravia TV."""
     url = f"http://{TV_IP}/sony/IRCC"
@@ -180,7 +113,7 @@ def send_ircc_command(command_code: str) -> None:
         "SOAPACTION": '"urn:schemas-sony-com:service:IRCC:1#X_SendIRCC"',
         "X-Auth-PSK": TV_PSK,
     }
-    LOGGER.info(f"Sending IRCC command {command_code} to TV at {TV_IP}")
+    LOGGER.info(f"Sending IRCC command to TV at {TV_IP}")
     response = httpx.post(url, content=body, headers=headers, timeout=5.0)
     if response.status_code != 200:
         LOGGER.error(f"Error sending IRCC command: {response.text}")
