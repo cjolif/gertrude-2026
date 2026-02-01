@@ -27,6 +27,12 @@ uv run ruff check src tests
 
 # Format
 uv run ruff format src tests
+
+# Install pre-commit hooks (run once after cloning)
+uv run pre-commit install
+
+# Run pre-commit on all files manually
+uv run pre-commit run --all-files
 ```
 
 ## Environment

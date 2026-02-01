@@ -1,6 +1,6 @@
 """Tests for the agent tools."""
 
-from gertrude.agent import control_tv_volume, get_current_time
+from gertrude.agent import change_tv_volume, get_current_time
 
 
 def test_get_current_time() -> None:
@@ -11,7 +11,7 @@ def test_get_current_time() -> None:
     assert ":" in result
 
 
-def test_control_tv_volume_invalid_action() -> None:
-    result = control_tv_volume.invoke({"action": "invalid"})
+def test_change_tv_volume_invalid_action() -> None:
+    result = change_tv_volume.invoke({"action": "invalid"})
     assert "Error" in result
     assert "Invalid action" in result
