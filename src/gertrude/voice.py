@@ -1,7 +1,7 @@
 """Voice input using OpenAI Whisper API."""
 
 import io
-import threading
+import time
 import wave
 
 import numpy as np
@@ -11,31 +11,71 @@ from openai import OpenAI
 SAMPLE_RATE = 16000
 CHANNELS = 1
 
+# Silence detection parameters
+SILENCE_THRESHOLD = 250  # Amplitude threshold for silence (int16 range: -32768 to 32767)
+SILENCE_DURATION = 1.5  # Seconds of silence before stopping
+SPEECH_THRESHOLD = 500  # Amplitude threshold to detect speech started
+MIN_SPEECH_DURATION = 0.3  # Minimum seconds of speech before enabling silence detection
+
 
 def record_audio() -> bytes:
-    """Record audio using push-to-talk (Enter to start, Enter to stop)."""
+    """Record audio with automatic silence detection."""
     input("Press Enter to start recording...")
-    print("Recording... (press Enter to stop)")
+    print("Listening... (will stop when you stop speaking)")
 
     audio_chunks: list[np.ndarray] = []
-    stop_event = threading.Event()
+    speech_started = False
+    speech_start_time = 0.0
+    silence_start_time = 0.0
+    stop_recording = False
 
-    def audio_callback(indata, frames, time, status):
-        if not stop_event.is_set():
-            audio_chunks.append(indata.copy())
+    def audio_callback(indata, frames, time_info, status):
+        nonlocal speech_started, speech_start_time, silence_start_time, stop_recording
+
+        if stop_recording:
+            return
+
+        audio_chunks.append(indata.copy())
+
+        # Calculate amplitude (RMS)
+        amplitude = np.abs(indata).mean()
+
+        current_time = time.time()
+
+        if not speech_started:
+            # Wait for speech to start
+            if amplitude > SPEECH_THRESHOLD:
+                speech_started = True
+                speech_start_time = current_time
+                silence_start_time = 0.0
+        else:
+            # Speech has started, monitor for silence
+            if amplitude < SILENCE_THRESHOLD:
+                if silence_start_time == 0.0:
+                    silence_start_time = current_time
+                elif current_time - silence_start_time > SILENCE_DURATION:
+                    # Check minimum speech duration
+                    if current_time - speech_start_time > MIN_SPEECH_DURATION:
+                        stop_recording = True
+            else:
+                # Reset silence timer when speech detected
+                silence_start_time = 0.0
 
     with sd.InputStream(
         samplerate=SAMPLE_RATE,
         channels=CHANNELS,
         dtype="int16",
         callback=audio_callback,
+        blocksize=int(SAMPLE_RATE * 0.1),  # 100ms blocks
     ):
-        input()  # Wait for Enter to stop
-        stop_event.set()
+        # Poll until recording should stop
+        while not stop_recording:
+            sd.sleep(100)
 
     if not audio_chunks:
         return b""
 
+    print("Processing...")
     audio_data = np.concatenate(audio_chunks)
     return audio_data.tobytes()
 

@@ -21,7 +21,7 @@ def chat(
 
     typer.echo(f"Starting Gertrude agent (model: {model})...")
     if voice:
-        typer.echo("Voice mode enabled. Press Enter to record, Enter again to stop.\n")
+        typer.echo("Voice mode enabled. Press Enter to record, stops when you stop speaking.\n")
     else:
         typer.echo("Type 'exit' or 'quit' to end the session.\n")
 

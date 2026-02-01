@@ -79,5 +79,5 @@ TV tools control a Sony Bravia TV via IRCC commands over HTTP.
 Use `--voice` flag to enable voice input mode:
 - Press Enter to start recording
 - Speak your message
-- Press Enter again to stop and send
+- Recording stops automatically when you stop speaking (silence detection)
 - Uses OpenAI Whisper API for transcription
