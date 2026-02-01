@@ -1,12 +1,14 @@
 """LangChain ReAct agent with tools."""
 
+import os
 from datetime import datetime
 
 import httpx
+from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
+from langchain_tavily import TavilySearch
 
 from gertrude.devices.tv import (
     IRCC_CHANNEL_DOWN,
@@ -117,13 +119,19 @@ def toggle_tv_power() -> str:
         return f"Error connecting to TV: {e}"
 
 
-TOOLS = [get_current_time, change_tv_volume, change_tv_channel, toggle_tv_power]
+TOOLS = [
+    get_current_time,
+    change_tv_volume,
+    change_tv_channel,
+    toggle_tv_power,
+    TavilySearch(max_results=3, tavily_api_key=os.getenv("TAVILY_API_KEY")),
+]
 
 
-def create_agent(model: str = "gpt-4o-mini"):
+def init_agent(model: str = "gpt-4o-mini"):
     """Create a ReAct agent with tools."""
     llm = ChatOpenAI(model=model)
-    return create_react_agent(llm, TOOLS)
+    return create_agent(llm, TOOLS)
 
 
 def run_agent_loop(agent, initial_message: str | None = None):

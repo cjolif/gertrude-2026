@@ -1,6 +1,10 @@
 """Tests for the agent tools."""
 
-from gertrude.agent import change_tv_volume, get_current_time
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from gertrude.agent import change_tv_volume, get_current_time  # noqa: E402
 
 
 def test_get_current_time() -> None:

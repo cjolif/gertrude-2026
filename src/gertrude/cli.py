@@ -14,12 +14,12 @@ def chat(
     model: str = typer.Option("gpt-4o-mini", "--model", "-m", help="OpenAI model to use"),
 ) -> None:
     """Start an interactive chat session with the agent."""
-    from gertrude.agent import create_agent, run_agent_loop
+    from gertrude.agent import init_agent, run_agent_loop
 
     typer.echo(f"Starting Gertrude agent (model: {model})...")
     typer.echo("Type 'exit' or 'quit' to end the session.\n")
 
-    agent = create_agent(model=model)
+    agent = init_agent(model=model)
     run_agent_loop(agent, initial_message=message)
 
 

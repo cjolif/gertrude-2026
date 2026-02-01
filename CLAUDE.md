@@ -41,6 +41,7 @@ Environment variables are loaded from `.env` file via python-dotenv.
 
 Required:
 - `OPENAI_API_KEY`: OpenAI API key
+- `TAVILY_API_KEY`: Tavily API key for web search
 
 Optional:
 - `TV_IP`: Sony Bravia TV IP address (default: `192.168.0.2`)
@@ -53,7 +54,7 @@ This is a LangChain-based ReAct agent CLI using Typer.
 - **src/gertrude/cli.py**: Typer CLI with `chat` command, loads `.env` at startup
 - **src/gertrude/agent.py**: LangChain ReAct agent setup with tools
   - Uses `langgraph.prebuilt.create_react_agent`
-  - Tools: `get_current_time`, `change_tv_volume`, `change_tv_channel`, `toggle_tv_power`
+  - Tools: `get_current_time`, `web_search`, `change_tv_volume`, `change_tv_channel`, `toggle_tv_power`
 - **src/gertrude/devices/**: Device control modules
   - **tv.py**: Sony Bravia TV control via IRCC commands
 - **tests/**: pytest tests for CLI and agent tools
