@@ -47,7 +47,7 @@ This is a LangChain-based ReAct agent CLI using Typer.
 - **src/gertrude/cli.py**: Typer CLI with `chat` command, loads `.env` at startup
 - **src/gertrude/agent.py**: LangChain ReAct agent setup with tools
   - Uses `langgraph.prebuilt.create_react_agent`
-  - Tools: `get_current_time`, `control_tv_volume`
+  - Tools: `get_current_time`, `change_tv_volume`, `change_tv_channel`, `toggle_tv_power`
 - **src/gertrude/devices/**: Device control modules
   - **tv.py**: Sony Bravia TV control via IRCC commands
 - **tests/**: pytest tests for CLI and agent tools
@@ -56,6 +56,8 @@ To add new tools, define them with `@tool` decorator in `agent.py` and add to `T
 
 ## TV Control
 
-The `control_tv_volume` tool controls a Sony Bravia TV volume via IRCC commands over HTTP.
+TV tools control a Sony Bravia TV via IRCC commands over HTTP.
 
-Actions: `up`, `down`, `stop`
+- **change_tv_volume**: `up`, `down`, `mute`
+- **change_tv_channel**: `up`, `down`, or channel number (e.g., `5`, `12`)
+- **toggle_tv_power**: toggles TV on/off
