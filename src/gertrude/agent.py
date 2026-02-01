@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Annotated
 
 import httpx
-from langchain.agents import AgentState, create_agent
+from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
@@ -115,12 +115,10 @@ def change_tv_channel(channel: str) -> str:
 
 
 @tool
-def get_tv_power_status(state: Annotated[dict, InjectedState]) -> str:
+def get_tv_power_status() -> any:
     """Get the current power status of the TV."""
     try:
         is_on = get_power_status()
-        # update the agent state
-        state["is_on"] = is_on
         return f"TV is currently {'on' if is_on else 'off'}."
     except httpx.HTTPStatusError as e:
         return f"Error: TV returned HTTP {e.response.status_code}"
@@ -153,16 +151,10 @@ TOOLS = [
 ]
 
 
-class GertrudeState(AgentState):
-    tv_on: bool
-
-
 def init_agent(model: str = "gpt-4o-mini"):
     """Create a ReAct agent with tools."""
     llm = ChatOpenAI(model=model)
-    return create_agent(
-        model=llm, tools=TOOLS, state_schema=GertrudeState, checkpointer=InMemorySaver()
-    )
+    return create_agent(model=llm, tools=TOOLS, checkpointer=InMemorySaver())
 
 
 def run_agent_loop(agent, initial_message: str | None = None):
@@ -170,9 +162,7 @@ def run_agent_loop(agent, initial_message: str | None = None):
     config = {"configurable": {"thread_id": "gertrude-session"}}
 
     if initial_message:
-        response = agent.invoke(
-            {"messages": [HumanMessage(content=initial_message)], "tv_on": False}, config
-        )
+        response = agent.invoke({"messages": [HumanMessage(content=initial_message)]}, config)
         print(f"\nAgent: {response['messages'][-1].content}\n")
 
     while True:
@@ -188,11 +178,5 @@ def run_agent_loop(agent, initial_message: str | None = None):
             print("Goodbye!")
             break
 
-        state = agent.get_state(config=config)
-        tv_on = state.tv_on if hasattr(state, "tv_on") else False
-        print("Current TV state:", "On" if tv_on else "Off")
-
-        response = agent.invoke(
-            {"messages": [HumanMessage(content=user_input)], "tv_on": tv_on}, config
-        )
+        response = agent.invoke({"messages": [HumanMessage(content=user_input)]}, config)
         print(f"\nAgent: {response['messages'][-1].content}\n")
