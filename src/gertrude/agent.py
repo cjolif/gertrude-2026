@@ -3,7 +3,6 @@
 import logging
 import os
 from datetime import datetime
-from typing import Annotated
 
 import httpx
 from langchain.agents import create_agent
@@ -12,12 +11,10 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_tavily import TavilySearch
 from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.prebuilt import InjectedState
 
 from gertrude.devices.tv import (
     IRCC_CHANNEL_DOWN,
     IRCC_CHANNEL_UP,
-    IRCC_MUTE,
     IRCC_NUM0,
     IRCC_NUM1,
     IRCC_NUM2,
@@ -28,11 +25,12 @@ from gertrude.devices.tv import (
     IRCC_NUM7,
     IRCC_NUM8,
     IRCC_NUM9,
-    IRCC_POWER,
-    IRCC_VOLUME_DOWN,
-    IRCC_VOLUME_UP,
     get_power_status,
+    get_volume_info,
     send_ircc_command,
+    set_mute,
+    set_power_status,
+    set_volume,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -49,23 +47,38 @@ def change_tv_volume(action: str) -> str:
     """Change the TV sound volume.
 
     Args:
-        action: "up" to increase, "down" to decrease, or "mute" to mute.
+        action: "up" to increase by 5, "down" to decrease by 5, a number (0-100)
+            to set specific level, "mute" to mute, or "unmute" to unmute.
     """
     action = action.lower().strip()
-    command_code = None
-    match action:
-        case "up":
-            command_code = IRCC_VOLUME_UP
-        case "down":
-            command_code = IRCC_VOLUME_DOWN
-        case "mute":
-            command_code = IRCC_MUTE
-        case _:
-            return f"Error: Invalid action '{action}'. Use 'up', 'down', or 'mute'."
 
     try:
-        send_ircc_command(command_code)
-        return f"TV sound {action} executed successfully."
+        if action == "up":
+            info = get_volume_info()
+            new_volume = min(100, info["volume"] + 5)
+            set_volume(new_volume)
+            return f"Volume increased to {new_volume}."
+        elif action == "down":
+            info = get_volume_info()
+            new_volume = max(0, info["volume"] - 5)
+            set_volume(new_volume)
+            return f"Volume decreased to {new_volume}."
+        elif action == "mute":
+            set_mute(True)
+            return "TV muted."
+        elif action == "unmute":
+            set_mute(False)
+            return "TV unmuted."
+        elif action.isdigit():
+            level = int(action)
+            if not 0 <= level <= 100:
+                return "Error: Volume must be between 0 and 100."
+            set_volume(level)
+            return f"Volume set to {level}."
+        else:
+            return (
+                f"Error: Invalid action '{action}'. Use 'up', 'down', 'mute', 'unmute', or 0-100."
+            )
     except httpx.HTTPStatusError as e:
         return f"Error: TV returned HTTP {e.response.status_code}"
     except httpx.RequestError as e:
@@ -115,7 +128,7 @@ def change_tv_channel(channel: str) -> str:
 
 
 @tool
-def get_tv_power_status() -> any:
+def get_tv_power_status() -> str:
     """Get the current power status of the TV."""
     try:
         is_on = get_power_status()
@@ -127,14 +140,15 @@ def get_tv_power_status() -> any:
 
 
 @tool
-def toggle_tv_power(state: Annotated[dict, InjectedState]) -> str:
-    """Toggle the TV power state (on to off, or off to on).
+def set_tv_power(power_on: bool) -> str:
+    """Turn the TV on or off.
 
-    Note: Check the current state before toggling to know the resulting state.
+    Args:
+        power_on: True to turn on, False to turn off (standby).
     """
     try:
-        send_ircc_command(IRCC_POWER)
-        return "TV power toggled successfully."
+        set_power_status(power_on)
+        return f"TV turned {'on' if power_on else 'off'}."
     except httpx.HTTPStatusError as e:
         return f"Error: TV returned HTTP {e.response.status_code}"
     except httpx.RequestError as e:
@@ -146,7 +160,7 @@ TOOLS = [
     change_tv_volume,
     change_tv_channel,
     get_tv_power_status,
-    toggle_tv_power,
+    set_tv_power,
     TavilySearch(max_results=3, tavily_api_key=os.getenv("TAVILY_API_KEY")),
 ]
 

@@ -73,29 +73,92 @@ IRCC_BLUE = "AAAAAgAAAJcAAAAkAw=="
 IRCC_CC = "AAAAAgAAAJcAAAAoAw=="
 
 
+def _call_rest_api(service: str, method: str, params: list | None = None) -> dict:
+    """Call the Sony Bravia REST API.
+
+    Args:
+        service: The service endpoint (e.g., "system", "audio").
+        method: The API method to call.
+        params: Optional parameters for the method.
+
+    Returns:
+        The JSON response from the API.
+    """
+    url = f"http://{TV_IP}/sony/{service}"
+    headers = {
+        "Content-Type": "application/json",
+        "X-Auth-PSK": TV_PSK,
+    }
+    payload = {
+        "method": method,
+        "id": 1,
+        "params": params or [],
+        "version": "1.0",
+    }
+    LOGGER.info(f"Calling REST API: {service}/{method}")
+    response = httpx.post(url, json=payload, headers=headers, timeout=5.0)
+    response.raise_for_status()
+    return response.json()
+
+
 def get_power_status() -> bool:
     """Get the current power status of the Sony Bravia TV.
 
     Returns:
         True if the TV is on (active), False if off (standby).
     """
-    url = f"http://{TV_IP}/sony/system"
-    headers = {
-        "Content-Type": "application/json",
-        "X-Auth-PSK": TV_PSK,
-    }
-    payload = {
-        "method": "getPowerStatus",
-        "id": 1,
-        "params": [],
-        "version": "1.0",
-    }
-    LOGGER.info(f"Getting power status from TV at {TV_IP}")
-    response = httpx.post(url, json=payload, headers=headers, timeout=5.0)
-    response.raise_for_status()
-    result = response.json()
+    result = _call_rest_api("system", "getPowerStatus")
     status = result.get("result", [{}])[0].get("status", "")
     return status == "active"
+
+
+def set_power_status(power_on: bool) -> None:
+    """Set the TV power state.
+
+    Args:
+        power_on: True to turn on, False to turn off (standby).
+    """
+    status = "active" if power_on else "standby"
+    _call_rest_api("system", "setPowerStatus", [{"status": status}])
+
+
+def get_volume_info() -> dict:
+    """Get the current volume information.
+
+    Returns:
+        Dictionary with 'volume' (0-100), 'mute' (bool), and 'target' keys.
+    """
+    result = _call_rest_api("audio", "getVolumeInformation")
+    # Returns list of targets (speaker, headphone), get the first one
+    volumes = result.get("result", [[]])[0]
+    if volumes:
+        return {
+            "volume": volumes[0].get("volume", 0),
+            "mute": volumes[0].get("mute", False),
+            "target": volumes[0].get("target", "speaker"),
+        }
+    return {"volume": 0, "mute": False, "target": "speaker"}
+
+
+def set_volume(volume: int, target: str = "speaker") -> None:
+    """Set the TV volume to a specific level.
+
+    Args:
+        volume: Volume level (0-100).
+        target: Audio target, typically "speaker".
+    """
+    volume = max(0, min(100, volume))
+    _call_rest_api("audio", "setAudioVolume", [{"volume": str(volume), "target": target}])
+
+
+def set_mute(mute: bool, target: str = "speaker") -> None:
+    """Set the TV mute state.
+
+    Args:
+        mute: True to mute, False to unmute.
+        target: Audio target, typically "speaker".
+    """
+    _call_rest_api("audio", "setAudioMute", [{"mute": mute, "target": target}])
 
 
 def send_ircc_command(command_code: str) -> None:
