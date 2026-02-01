@@ -1,6 +1,9 @@
 """Command-line interface for Gertrude."""
 
 import typer
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = typer.Typer(help="Gertrude - A LangChain ReAct agent CLI")
 
