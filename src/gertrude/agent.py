@@ -1,14 +1,18 @@
 """LangChain ReAct agent with tools."""
 
+import logging
 import os
 from datetime import datetime
+from typing import Annotated
 
 import httpx
-from langchain.agents import create_agent
+from langchain.agents import AgentState, create_agent
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_tavily import TavilySearch
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.prebuilt import InjectedState
 
 from gertrude.devices.tv import (
     IRCC_CHANNEL_DOWN,
@@ -27,8 +31,11 @@ from gertrude.devices.tv import (
     IRCC_POWER,
     IRCC_VOLUME_DOWN,
     IRCC_VOLUME_UP,
+    get_power_status,
     send_ircc_command,
 )
+
+LOGGER = logging.getLogger(__name__)
 
 
 @tool
@@ -108,8 +115,25 @@ def change_tv_channel(channel: str) -> str:
 
 
 @tool
-def toggle_tv_power() -> str:
-    """Turn the TV on or off (toggle power state)."""
+def get_tv_power_status(state: Annotated[dict, InjectedState]) -> str:
+    """Get the current power status of the TV."""
+    try:
+        is_on = get_power_status()
+        # update the agent state
+        state["is_on"] = is_on
+        return f"TV is currently {'on' if is_on else 'off'}."
+    except httpx.HTTPStatusError as e:
+        return f"Error: TV returned HTTP {e.response.status_code}"
+    except httpx.RequestError as e:
+        return f"Error connecting to TV: {e}"
+
+
+@tool
+def toggle_tv_power(state: Annotated[dict, InjectedState]) -> str:
+    """Toggle the TV power state (on to off, or off to on).
+
+    Note: Check the current state before toggling to know the resulting state.
+    """
     try:
         send_ircc_command(IRCC_POWER)
         return "TV power toggled successfully."
@@ -123,15 +147,22 @@ TOOLS = [
     get_current_time,
     change_tv_volume,
     change_tv_channel,
+    get_tv_power_status,
     toggle_tv_power,
     TavilySearch(max_results=3, tavily_api_key=os.getenv("TAVILY_API_KEY")),
 ]
 
 
+class GertrudeState(AgentState):
+    tv_on: bool
+
+
 def init_agent(model: str = "gpt-4o-mini"):
     """Create a ReAct agent with tools."""
     llm = ChatOpenAI(model=model)
-    return create_agent(llm, TOOLS)
+    return create_agent(
+        model=llm, tools=TOOLS, state_schema=GertrudeState, checkpointer=InMemorySaver()
+    )
 
 
 def run_agent_loop(agent, initial_message: str | None = None):
@@ -139,7 +170,9 @@ def run_agent_loop(agent, initial_message: str | None = None):
     config = {"configurable": {"thread_id": "gertrude-session"}}
 
     if initial_message:
-        response = agent.invoke({"messages": [HumanMessage(content=initial_message)]}, config)
+        response = agent.invoke(
+            {"messages": [HumanMessage(content=initial_message)], "tv_on": False}, config
+        )
         print(f"\nAgent: {response['messages'][-1].content}\n")
 
     while True:
@@ -155,5 +188,11 @@ def run_agent_loop(agent, initial_message: str | None = None):
             print("Goodbye!")
             break
 
-        response = agent.invoke({"messages": [HumanMessage(content=user_input)]}, config)
+        state = agent.get_state(config=config)
+        tv_on = state.tv_on if hasattr(state, "tv_on") else False
+        print("Current TV state:", "On" if tv_on else "Off")
+
+        response = agent.invoke(
+            {"messages": [HumanMessage(content=user_input)], "tv_on": tv_on}, config
+        )
         print(f"\nAgent: {response['messages'][-1].content}\n")

@@ -1,8 +1,11 @@
 """Sony Bravia TV control via IRCC commands."""
 
+import logging
 import os
 
 import httpx
+
+LOGGER = logging.getLogger(__name__)
 
 TV_IP = os.getenv("TV_IP", "192.168.0.2")
 TV_PSK = os.getenv("TV_PSK", "0000")
@@ -70,6 +73,31 @@ IRCC_BLUE = "AAAAAgAAAJcAAAAkAw=="
 IRCC_CC = "AAAAAgAAAJcAAAAoAw=="
 
 
+def get_power_status() -> bool:
+    """Get the current power status of the Sony Bravia TV.
+
+    Returns:
+        True if the TV is on (active), False if off (standby).
+    """
+    url = f"http://{TV_IP}/sony/system"
+    headers = {
+        "Content-Type": "application/json",
+        "X-Auth-PSK": TV_PSK,
+    }
+    payload = {
+        "method": "getPowerStatus",
+        "id": 1,
+        "params": [],
+        "version": "1.0",
+    }
+    LOGGER.info(f"Getting power status from TV at {TV_IP}")
+    response = httpx.post(url, json=payload, headers=headers, timeout=5.0)
+    response.raise_for_status()
+    result = response.json()
+    status = result.get("result", [{}])[0].get("status", "")
+    return status == "active"
+
+
 def send_ircc_command(command_code: str) -> None:
     """Send an IRCC command to the Sony Bravia TV."""
     url = f"http://{TV_IP}/sony/IRCC"
@@ -89,5 +117,8 @@ def send_ircc_command(command_code: str) -> None:
         "SOAPACTION": '"urn:schemas-sony-com:service:IRCC:1#X_SendIRCC"',
         "X-Auth-PSK": TV_PSK,
     }
+    LOGGER.info(f"Sending IRCC command {command_code} to TV at {TV_IP}")
     response = httpx.post(url, content=body, headers=headers, timeout=5.0)
+    if response.status_code != 200:
+        LOGGER.error(f"Error sending IRCC command: {response.text}")
     response.raise_for_status()

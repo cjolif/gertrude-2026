@@ -1,11 +1,13 @@
 """Command-line interface for Gertrude."""
 
+import logging
+
 import typer
 from dotenv import load_dotenv
 
 load_dotenv()
 
-app = typer.Typer(help="Gertrude - A LangChain ReAct agent CLI")
+app = typer.Typer(help="Gertrude - A LangChain agent CLI")
 
 
 @app.command()
@@ -29,6 +31,13 @@ def version() -> None:
     from gertrude import __version__
 
     typer.echo(f"gertrude {__version__}")
+
+
+@app.callback()
+def main(verbose: bool = typer.Option(False, "--verbose", "-v")):
+    lvl = logging.INFO if verbose else logging.WARN
+    fmt = "%(message)s"
+    logging.basicConfig(level=lvl, format=fmt)
 
 
 if __name__ == "__main__":
