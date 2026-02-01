@@ -12,6 +12,7 @@ uv sync
 uv run gertrude chat
 uv run gertrude chat "What time is it?"
 uv run gertrude chat --model gpt-4o
+uv run gertrude chat --voice  # Voice input mode
 
 # Run all tests
 uv run pytest
@@ -52,6 +53,7 @@ Optional:
 This is a LangChain-based ReAct agent CLI using Typer.
 
 - **src/gertrude/cli.py**: Typer CLI with `chat` command, loads `.env` at startup
+- **src/gertrude/voice.py**: Voice input using OpenAI Whisper API
 - **src/gertrude/agent.py**: LangChain ReAct agent setup with tools
   - Uses `langgraph.prebuilt.create_react_agent`
   - Tools: `get_current_time`, `web_search`, `get_tv_volume`, `change_tv_volume`, `set_tv_mute`, `change_tv_channel`, `get_tv_power_status`, `set_tv_power`
@@ -71,3 +73,11 @@ TV tools control a Sony Bravia TV via IRCC commands over HTTP.
 - **change_tv_channel**: `up`, `down`, or channel number (e.g., `5`, `12`) (uses IRCC)
 - **get_tv_power_status**: returns whether TV is on or off (uses REST API)
 - **set_tv_power**: turns TV on or off directly (uses REST API)
+
+## Voice Input
+
+Use `--voice` flag to enable voice input mode:
+- Press Enter to start recording
+- Speak your message
+- Press Enter again to stop and send
+- Uses OpenAI Whisper API for transcription

@@ -208,9 +208,12 @@ def init_agent(model: str = "gpt-4o-mini"):
     return create_agent(model=llm, tools=TOOLS, checkpointer=InMemorySaver())
 
 
-def run_agent_loop(agent, initial_message: str | None = None):
+def run_agent_loop(agent, initial_message: str | None = None, voice_mode: bool = False):
     """Run an interactive agent loop."""
     config = {"configurable": {"thread_id": "gertrude-session"}}
+
+    if voice_mode:
+        from gertrude.voice import get_voice_input
 
     if initial_message:
         response = agent.invoke({"messages": [HumanMessage(content=initial_message)]}, config)
@@ -218,7 +221,10 @@ def run_agent_loop(agent, initial_message: str | None = None):
 
     while True:
         try:
-            user_input = input("You: ").strip()
+            if voice_mode:
+                user_input = get_voice_input()
+            else:
+                user_input = input("You: ").strip()
         except (KeyboardInterrupt, EOFError):
             print("\nGoodbye!")
             break
